@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ramesh Giri - Interactive 3D Portfolio</title>
+    <script src="https://unpkg.com/three@0.155.0/build/three.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            background: #0a0a0a;
+            color: white;
+            cursor: none;
+        }
+        
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* Custom Cursor */
+        .cursor {
+            position: fixed;
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            transition: all 0.1s ease;
+            mix-blend-mode: difference;
+        }
+        
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 1s ease;
+        }
+        
+        .loading-content {
+            text-align: center;
+            animation: fadeInUp 1s ease;
+        }
+        
+        .loading-title {
+            font-size: 4rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(102, 126, 234, 0.5);
+        }
+        
+        .loading-subtitle {
+            font-size: 1.5rem;
+            color: #a0aec0;
+            margin-bottom: 3rem;
+            opacity: 0.8;
+        }
+        
+        .loading-progress {
+            width: 300px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            margin: 0 auto 2rem;
+            overflow: hidden;
+        }
+        
+        .loading-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.8);
+        }
+        
+        .loading-text {
+            font-size: 1.1rem;
+            color: #e2e8f0;
+            margin-bottom: 0.5rem;
+        }
+        
+        .loading-percentage {
+            font-size: 1rem;
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        /* Navigation HUD */
+        .hud {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 1s ease 2s;
+        }
+        
+        .hud.visible {
+            opacity: 1;
+        }
+        
+        .nav-menu {
+            position: absolute;
+            top: 3rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 1.5rem;
+            pointer-events: auto;
+        }
+        
+        .nav-btn {
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border-radius: 2rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(20px);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .nav-btn:hover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+        
+        .nav-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+            box-shadow: 0 0 30px rgba(102, 126, 234, 0.6);
+        }
+        
+        .controls-panel {
+            position: absolute;
+            bottom: 3rem;
+            left: 3rem;
+            pointer-events: auto;
+        }
+        
+        .control-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.8rem;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 0.5rem 1rem;
+            border-radius: 1rem;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .control-key {
+            background: rgba(102, 126, 234, 0.2);
+            padding: 0.3rem 0.8rem;
+            border-radius: 0.5rem;
+            font-family: 'Monaco', monospace;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border: 1px solid rgba(102, 126, 234, 0.4);
+        }
+        
+        .control-desc {
+            font-size: 0.9rem;
+            color: #a0aec0;
+        }
+        
+        .section-info {
+            position: absolute;
+            bottom: 3rem;
+            right: 3rem;
+            text-align: right;
+            pointer-events: none;
+        }
+        
+        .current-section {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .section-desc {
+            font-size: 1rem;
+            color: #a0aec0;
+            opacity: 0.8;
+        }
+        
+        /* Floating Instructions */
+        .instructions {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+            opacity: 0;
+            animation: floatInstructions 3s ease-in-out infinite;
+        }
+        
+        .instructions.show {
+            opacity: 1;
+            animation: fadeOut 5s ease forwards;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes floatInstructions {
+            0%, 100% { transform: translate(-50%, -50%) translateY(0px); }
+            50% { transform: translate(-50%, -50%) translateY(-10px); }
+        }
+        
+        @keyframes fadeOut {
+            0% { opacity: 1; }
+            70% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .loading-title { font-size: 2.5rem; }
+            .nav-menu { 
+                gap: 0.8rem;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            .nav-btn { 
+                padding: 0.6rem 1rem;
+                font-size: 0.8rem;
+            }
+            .controls-panel {
+                bottom: 1rem;
+                left: 1rem;
+            }
+            .section-info {
+                bottom: 1rem;
+                right: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Custom Cursor -->
+    <div class="cursor"></div>
+    
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-content">
+            <h1 class="loading-title">RAMESH GIRI</h1>
+            <p class="loading-subtitle">Interactive 3D Portfolio</p>
+            <div class="loading-progress">
+                <div class="loading-bar" id="loadingBar"></div>
+            </div>
+            <p class="loading-text" id="loadingText">Initializing Experience...</p>
+            <p class="loading-percentage" id="loadingPercentage">0%</p>
+        </div>
+    </div>
+    
+    <!-- Main Container -->
+    <div id="container">
+        <canvas id="canvas"></canvas>
+    </div>
+    
+    <!-- HUD Interface -->
+    <div class="hud" id="hud">
+        <div class="nav-menu">
+            <button class="nav-btn active" data-section="0">About</button>
+            <button class="nav-btn" data-section="1">Skills</button>
+            <button class="nav-btn" data-section="2">Projects</button>
+            <button class="nav-btn" data-section="3">Contact</button>
+        </div>
+        
+        <div class="controls-panel">
+            <div class="control-item">
+                <span class="control-key">WASD</span>
+                <span class="control-desc">Navigate Sections</span>
+            </div>
+            <div class="control-item">
+                <span class="control-key">MOUSE</span>
+                <span class="control-desc">Look Around</span>
+            </div>
+            <div class="control-item">
+                <span class="control-key">CLICK</span>
+                <span class="control-desc">Interact</span>
+            </div>
+        </div>
+        
+        <div class="section-info">
+            <div class="current-section" id="currentSection">About</div>
+            <div class="section-desc" id="sectionDesc">Creative Developer & Designer</div>
+        </div>
+        
+        <div class="instructions" id="instructions">
+            <p style="font-size: 1.2rem; color: #667eea;">Use WASD to explore different sections</p>
+        </div>
+    </div>
+
+    <script>
+        class Portfolio3D {
+            constructor() {
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                this.currentSection = 0;
+                this.isTransitioning = false;
+                this.mouse = { x: 0, y: 0 };
+                this.keys = {};
+                this.time = 0;
+                
+                this.sections = [
+                    { name: 'About', desc: 'Creative Developer & Designer', color: 0x667eea, position: { x: 0, y: 0, z: 0 } },
+                    { name: 'Skills', desc: 'Technical Expertise', color: 0x764ba2, position: { x: 30, y: 0, z: 0 } },
+                    { name: 'Projects', desc: 'Featured Work', color: 0xf093fb, position: { x: 0, y: 0, z: 30 } },
+                    { name: 'Contact', desc: 'Get In Touch', color: 0x4fd1c7, position: { x: -30, y: 0, z: 0 } }
+                ];
+                
+                this.meshes = [];
+                this.particles = [];
+                
+                this.init();
+            }
+            
+            async init() {
+                this.setupCustomCursor();
+                this.showLoading();
+                
+                // Initialize Three.js
+                this.scene = new THREE.Scene();
+                this.scene.fog = new THREE.Fog(0x0a0a0a, 50, 200);
+                
+                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.camera.position.set(0, 5, 15);
+                
+                this.renderer = new THREE.WebGLRenderer({ 
+                    canvas: document.getElementById('canvas'), 
+                    antialias: true,
+                    alpha: true
+                });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                this.renderer.setClearColor(0x0a0a0a, 1);
+                
+                this.setupLighting();
+                this.createEnvironment();
+                this.createSections();
+                this.createParticles();
+                this.setupControls();
+                this.setupEventListeners();
+                
+                // Start animation loop
+                this.animate();
+                
+                // Hide loading after setup
+                setTimeout(() => this.hideLoading(), 3000);
+            }
+            
+            setupCustomCursor() {
+                const cursor = document.querySelector('.cursor');
+                document.addEventListener('mousemove', (e) => {
+                    cursor.style.left = e.clientX + 'px';
+                    cursor.style.top = e.clientY + 'px';
+                });
+            }
+            
+            showLoading() {
+                const loadingBar = document.getElementById('loadingBar');
+                const loadingText = document.getElementById('loadingText');
+                const loadingPercentage = document.getElementById('loadingPercentage');
+                
+                const loadingSteps = [
+                    'Initializing Experience...',
+                    'Loading 3D Environment...',
+                    'Creating Interactive Elements...',
+                    'Preparing Portfolio Sections...',
+                    'Finalizing Setup...'
+                ];
+                
+                let progress = 0;
+                const interval = setInterval(() => {
+                    progress += Math.random() * 3 + 1;
+                    if (progress > 100) progress = 100;
+                    
+                    loadingBar.style.width = progress + '%';
+                    loadingPercentage.textContent = Math.floor(progress) + '%';
+                    
+                    const stepIndex = Math.floor((progress / 100) * loadingSteps.length);
+                    if (stepIndex < loadingSteps.length) {
+                        loadingText.textContent = loadingSteps[stepIndex];
+                    }
+                    
+                    if (progress >= 100) {
+                        clearInterval(interval);
+                        loadingText.textContent = 'Experience Ready!';
+                    }
+                }, 100);
+            }
+            
+            hideLoading() {
+                const loadingScreen = document.getElementById('loadingScreen');
+                const hud = document.getElementById('hud');
+                const instructions = document.getElementById('instructions');
+                
+                loadingScreen.style.opacity = '0';
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none';
+                    hud.classList.add('visible');
+                    instructions.classList.add('show');
+                }, 1000);
+            }
+            
+            setupLighting() {
+                // Ambient light
+                const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+                this.scene.add(ambientLight);
+                
+                // Main directional light
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+                directionalLight.position.set(10, 20, 10);
+                directionalLight.castShadow = true;
+                directionalLight.shadow.mapSize.width = 2048;
+                directionalLight.shadow.mapSize.height = 2048;
+                directionalLight.shadow.camera.near = 0.5;
+                directionalLight.shadow.camera.far = 100;
+                this.scene.add(directionalLight);
+                
+                // Colored point lights for each section
+                this.sections.forEach((section, index) => {
+                    const light = new THREE.PointLight(section.color, 0.8, 50);
+                    light.position.set(section.position.x, 10, section.position.z);
+                    this.scene.add(light);
+                });
+            }
+            
+            createEnvironment() {
+                // Ground plane
+                const groundGeometry = new THREE.PlaneGeometry(200, 200);
+                const groundMaterial = new THREE.MeshLambertMaterial({ 
+                    color: 0x1a1a1a,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+                ground.rotation.x = -Math.PI / 2;
+                ground.position.y = -2;
+                ground.receiveShadow = true;
+                this.scene.add(ground);
+                
+                // Grid helper
+                const grid = new THREE.GridHelper(200, 50, 0x667eea, 0x333333);
+                grid.position.y = -1.9;
+                grid.material.opacity = 0.3;
+                grid.material.transparent = true;
+                this.scene.add(grid);
+            }
+            
+            createSections() {
+                this.sections.forEach((section, index) => {
+                    const group = new THREE.Group();
+                    group.position.set(section.position.x, section.position.y, section.position.z);
+                    
+                    // Main platform
+                    const platformGeometry = new THREE.CylinderGeometry(8, 10, 2, 32);
+                    const platformMaterial = new THREE.MeshStandardMaterial({ 
+                        color: section.color,
+                        metalness: 0.3,
+                        roughness: 0.4,
+                        emissive: section.color,
+                        emissiveIntensity: 0.1
+                    });
+                    const platform = new THREE.Mesh(platformGeometry, platformMaterial);
+                    platform.position.y = -1;
+                    platform.castShadow = true;
+                    platform.receiveShadow = true;
+                    group.add(platform);
+                    
+                    // Floating elements around platform
+                    for (let i = 0; i < 8; i++) {
+                        const angle = (i / 8) * Math.PI * 2;
+                        const radius = 12;
+                        const x = Math.cos(angle) * radius;
+                        const z = Math.sin(angle) * radius;
+                        const y = Math.sin(angle * 3) * 2 + 3;
+                        
+                        const geometry = Math.random() > 0.5 ? 
+                            new THREE.SphereGeometry(0.5, 16, 16) : 
+                            new THREE.BoxGeometry(1, 1, 1);
+                        
+                        const material = new THREE.MeshStandardMaterial({ 
+                            color: section.color,
+                            metalness: 0.8,
+                            roughness: 0.2,
+                            emissive: section.color,
+                            emissiveIntensity: 0.2
+                        });
+                        
+                        const mesh = new THREE.Mesh(geometry, material);
+                        mesh.position.set(x, y, z);
+                        mesh.castShadow = true;
+                        mesh.userData = { 
+                            originalY: y,
+                            floatSpeed: Math.random() * 0.02 + 0.01,
+                            rotationSpeed: Math.random() * 0.02 + 0.01
+                        };
+                        group.add(mesh);
+                        this.meshes.push(mesh);
+                    }
+                    
+                    // Central pillar
+                    const pillarGeometry = new THREE.CylinderGeometry(1, 1.5, 8, 16);
+                    const pillarMaterial = new THREE.MeshStandardMaterial({ 
+                        color: 0xffffff,
+                        metalness: 0.9,
+                        roughness: 0.1,
+                        emissive: section.color,
+                        emissiveIntensity: 0.3
+                    });
+                    const pillar = new THREE.Mesh(pillarGeometry, pillarMaterial);
+                    pillar.position.y = 4;
+                    pillar.castShadow = true;
+                    group.add(pillar);
+                    
+                    this.scene.add(group);
+                });
+            }
+            
+            createParticles() {
+                const particleCount = 1000;
+                const particleGeometry = new THREE.BufferGeometry();
+                const positions = new Float32Array(particleCount * 3);
+                const colors = new Float32Array(particleCount * 3);
+                
+                for (let i = 0; i < particleCount; i++) {
+                    positions[i * 3] = (Math.random() - 0.5) * 200;
+                    positions[i * 3 + 1] = Math.random() * 50;
+                    positions[i * 3 + 2] = (Math.random() - 0.5) * 200;
+                    
+                    const color = new THREE.Color();
+                    color.setHSL(Math.random(), 0.8, 0.5);
+                    colors[i * 3] = color.r;
+                    colors[i * 3 + 1] = color.g;
+                    colors[i * 3 + 2] = color.b;
+                }
+                
+                particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                particleGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                
+                const particleMaterial = new THREE.PointsMaterial({ 
+                    size: 0.5,
+                    vertexColors: true,
+                    transparent: true,
+                    opacity: 0.6,
+                    blending: THREE.AdditiveBlending
+                });
+                
+                const particles = new THREE.Points(particleGeometry, particleMaterial);
+                this.scene.add(particles);
+                this.particles.push(particles);
+            }
+            
+            setupControls() {
+                document.addEventListener('keydown', (event) => {
+                    this.keys[event.code] = true;
+                });
+                
+                document.addEventListener('keyup', (event) => {
+                    this.keys[event.code] = false;
+                });
+                
+                document.addEventListener('mousemove', (event) => {
+                    this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                    this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+                });
+                
+                // Navigation buttons
+                document.querySelectorAll('.nav-btn').forEach((btn, index) => {
+                    btn.addEventListener('click', () => {
+                        this.navigateToSection(index);
+                    });
+                });
+            }
+            
+            setupEventListeners() {
+                window.addEventListener('resize', () => {
+                    this.camera.aspect = window.innerWidth / window.innerHeight;
+                    this.camera.updateProjectionMatrix();
+                    this.renderer.setSize(window.innerWidth, window.innerHeight);
+                });
+            }
+            
+            handleInput() {
+                if (this.isTransitioning) return;
+                
+                if (this.keys['KeyW'] || this.keys['ArrowUp']) {
+                    this.navigateToSection((this.currentSection + 1) % this.sections.length);
+                }
+                if (this.keys['KeyS'] || this.keys['ArrowDown']) {
+                    this.navigateToSection((this.currentSection - 1 + this.sections.length) % this.sections.length);
+                }
+                if (this.keys['KeyA'] || this.keys['ArrowLeft']) {
+                    this.navigateToSection((this.currentSection - 1 + this.sections.length) % this.sections.length);
+                }
+                if (this.keys['KeyD'] || this.keys['ArrowRight']) {
+                    this.navigateToSection((this.currentSection + 1) % this.sections.length);
+                }
+            }
+            
+            navigateToSection(sectionIndex) {
+                if (this.isTransitioning || sectionIndex === this.currentSection) return;
+                
+                this.isTransitioning = true;
+                this.currentSection = sectionIndex;
+                
+                // Update UI
+                document.querySelectorAll('.nav-btn').forEach((btn, index) => {
+                    btn.classList.toggle('active', index === sectionIndex);
+                });
+                
+                document.getElementById('currentSection').textContent = this.sections[sectionIndex].name;
+                document.getElementById('sectionDesc').textContent = this.sections[sectionIndex].desc;
+                
+                // Animate camera to new position
+                const targetPosition = this.sections[sectionIndex].position;
+                this.animateCamera(
+                    { x: targetPosition.x, y: 8, z: targetPosition.z + 20 },
+                    { x: targetPosition.x, y: 0, z: targetPosition.z }
+                );
+                
+                setTimeout(() => {
+                    this.isTransitioning = false;
+                }, 2000);
+            }
+            
+            animateCamera(targetPosition, lookAtPosition) {
+                const startPosition = this.camera.position.clone();
+                const startLookAt = new THREE.Vector3(0, 0, 0);
+                this.camera.getWorldDirection(startLookAt);
+                startLookAt.add(this.camera.position);
+                
+                const duration = 2000;
+                const startTime = Date.now();
+                
+                const animate = () => {
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    const easeProgress = 1 - Math.pow(1 - progress, 3);
+                    
+                    this.camera.position.lerpVectors(startPosition, new THREE.Vector3(targetPosition.x, targetPosition.y, targetPosition.z), easeProgress);
+                    
+                    const currentLookAt = new THREE.Vector3().lerpVectors(startLookAt, new THREE.Vector3(lookAtPosition.x, lookAtPosition.y, lookAtPosition.z), easeProgress);
+                    this.camera.lookAt(currentLookAt);
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    }
+                };
+                
+                animate();
+            }
+            
+            animate() {
+                requestAnimationFrame(() => this.animate());
+                
+                this.time += 0.01;
+                this.handleInput();
+                
+                // Animate floating objects
+                this.meshes.forEach(mesh => {
+                    if (mesh.userData.originalY !== undefined) {
+                        mesh.position.y = mesh.userData.originalY + Math.sin(this.time + mesh.position.x) * mesh.userData.floatSpeed * 50;
+                        mesh.rotation.x += mesh.userData.rotationSpeed;
+                        mesh.rotation.y += mesh.userData.rotationSpeed * 0.7;
+                    }
+                });
+                
+                // Animate particles
+                this.particles.forEach(particle => {
+                    particle.rotation.y += 0.001;
+                    const positions = particle.geometry.attributes.position.array;
+                    for (let i = 0; i < positions.length; i += 3) {
+                        positions[i + 1] += Math.sin(this.time + positions[i] * 0.01) * 0.01;
+                    }
+                    particle.geometry.attributes.position.needsUpdate = true;
+                });
+                
+                // Mouse-based camera movement
+                if (!this.isTransitioning) {
+                    const mouseInfluence = 0.1;
+                    this.camera.position.x += (this.mouse.x * mouseInfluence - this.camera.position.x * 0.01) * 0.05;
+                    this.camera.position.y += (this.mouse.y * mouseInfluence - this.camera.position.y * 0.01) * 0.05;
+                }
+                
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+        
+        // Initialize when page loads
+        window.addEventListener('load', () => {
+            new Portfolio3D();
+        });
+        
+        // Console Easter Egg
+        console.log(`
+        🎨 RAMESH GIRI - Interactive Portfolio
+        =====================================
+        
+        Built with Three.js and passion
+        Navigate with WASD or click sections
+        
+        Thanks for checking out the code!
+        `);
+    </script>
+</body>
+</html>
