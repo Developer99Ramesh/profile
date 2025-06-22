@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ramesh Giri - Interactive 3D Portfolio</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Custom Cursor -->
+    <div class="cursor"></div>
+    
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-content">
+            <h1 class="loading-title">RAMESH GIRI</h1>
+            <p class="loading-subtitle">Interactive 3D Portfolio</p>
+            <div class="loading-progress">
+                <div class="loading-bar" id="loadingBar"></div>
+            </div>
+            <p class="loading-text" id="loadingText">Initializing Experience...</p>
+            <p class="loading-percentage" id="loadingPercentage">0%</p>
+        </div>
+    </div>
+    
+    <!-- Main Container -->
+    <div id="container">
+        <canvas id="canvas"></canvas>
+    </div>
+    
+    <!-- HUD Interface -->
+    <div class="hud" id="hud">
+        <div class="nav-menu">
+            <button class="nav-btn active" data-section="0">About</button>
+            <button class="nav-btn" data-section="1">Skills</button>
+            <button class="nav-btn" data-section="2">Projects</button>
+            <button class="nav-btn" data-section="3">Contact</button>
+        </div>
+        
+        <div class="controls-panel">
+            <div class="control-item">
+                <span class="control-key">WASD</span>
+                <span class="control-desc">Navigate Sections</span>
+            </div>
+            <div class="control-item">
+                <span class="control-key">MOUSE</span>
+                <span class="control-desc">Look Around</span>
+            </div>
+            <div class="control-item">
+                <span class="control-key">CLICK</span>
+                <span class="control-desc">Interact</span>
+            </div>
+        </div>
+        
+        <div class="section-info">
+            <div class="current-section" id="currentSection">About</div>
+            <div class="section-desc" id="sectionDesc">Creative Developer & Designer</div>
+        </div>
+        
+        <div class="instructions" id="instructions">
+            <p style="font-size: 1.2rem; color: #667eea;">Use WASD to explore different sections</p>
+        </div>
+    </div>
+
+    <!-- Three.js CDN -->
+    <script src="https://unpkg.com/three@0.155.0/build/three.min.js"></script>
+    <!-- Main JavaScript -->
+    <script src="script.js"></script>
+</body>
+</html>
